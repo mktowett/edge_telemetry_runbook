@@ -38,7 +38,7 @@
   <div class="fixed top-0 inset-x-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/5">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
       <span class="text-xs text-slate-400 whitespace-nowrap font-medium">
-        Step <span id="prog-current">1</span> of <span id="prog-total">9</span>
+        Step <span id="prog-current">1</span> of <span id="prog-total">10</span>
       </span>
       <div class="flex-1 bg-slate-700 rounded-full h-1.5 overflow-hidden">
         <div id="prog-fill" class="bg-green-500 h-full rounded-full transition-[width] duration-500 ease-in-out" style="width:0%"></div>
@@ -179,19 +179,19 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="space-y-1.5">
               <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Username</label>
-              <input type="text" id="db-user" placeholder="postgres" value="postgres"
+              <input type="text" id="db-user" placeholder="db-user" value="db-user"
                 class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
             </div>
             
             <div class="space-y-1.5">
               <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Password</label>
-              <input type="password" id="db-password" placeholder="Edge123"
+              <input type="password" id="db-password" placeholder="db-password"
                 class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
             </div>
             
             <div class="space-y-1.5">
               <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Server IP</label>
-              <input type="text" id="db-host" placeholder="102.164.37.218"
+              <input type="text" id="db-host" placeholder="127.0.0.1"
                 class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
             </div>
             
@@ -509,6 +509,56 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
       <div class="flex items-start gap-4 mb-6">
         <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">5</div>
         <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Server Access Details</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Set your SSH username and server IP for transfer commands.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>These values will be used automatically in the SCP and SSH commands in the next step.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">SSH Username</label>
+            <input type="text" id="server-username" placeholder="ubuntu" value="user"
+              class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Server IP</label>
+            <input type="text" id="server-ip" placeholder="203.0.113.10"
+              class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500">Example target: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded">ubuntu@203.0.113.10</code></p>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(4)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Unknown username: Use the SSH user configured on your server</li>
+          <li>IP not reachable: Verify your server public IP and security group/firewall rules</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-5" data-step="5" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">6</div>
+        <div class="flex-1 min-w-0">
           <h2 class="text-base font-semibold text-slate-100">Transfer Files to Server</h2>
           <p class="text-sm text-slate-400 mt-0.5">Upload the deployment package to your Ubuntu server.</p>
         </div>
@@ -530,7 +580,7 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
               Copy
             </button>
           </div>
-          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>scp -r EdgeTelemetryDeployment/ user@&lt;server-ip&gt;:~/</code></pre>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code id="transfer-scp-command">scp -r EdgeTelemetryDeployment/ user@&lt;server-ip&gt;:~/</code></pre>
         </div>
 
         <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
@@ -543,7 +593,7 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
               Copy
             </button>
           </div>
-          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>ssh user@&lt;server-ip&gt;</code></pre>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code id="transfer-ssh-command">ssh user@&lt;server-ip&gt;</code></pre>
         </div>
       </div>
 
@@ -551,7 +601,7 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
         <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
           ⚠ Having trouble?
         </button>
-        <button onclick="completeStep(4)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+        <button onclick="completeStep(5)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
           Mark Complete →
         </button>
       </div>
@@ -565,9 +615,9 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
       </div>
     </section>
 
-    <section id="step-5" data-step="5" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+    <section id="step-6" data-step="6" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
       <div class="flex items-start gap-4 mb-6">
-        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">6</div>
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">7</div>
         <div class="flex-1 min-w-0">
           <h2 class="text-base font-semibold text-slate-100">Deploy Services</h2>
           <p class="text-sm text-slate-400 mt-0.5">Start all EdgeTelemetry services using Docker Compose.</p>
@@ -616,7 +666,7 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
         <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
           ⚠ Having trouble?
         </button>
-        <button onclick="completeStep(5)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+        <button onclick="completeStep(6)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
           Mark Complete →
         </button>
       </div>
@@ -631,9 +681,9 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
       </div>
     </section>
 
-    <section id="step-6" data-step="6" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+    <section id="step-7" data-step="7" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
       <div class="flex items-start gap-4 mb-6">
-        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">7</div>
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">8</div>
         <div class="flex-1 min-w-0">
           <h2 class="text-base font-semibold text-slate-100">Verify Deployment</h2>
           <p class="text-sm text-slate-400 mt-0.5">Check that all services are running correctly.</p>
@@ -689,7 +739,7 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
         <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
           ⚠ Having trouble?
         </button>
-        <button onclick="completeStep(6)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+        <button onclick="completeStep(7)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
           Mark Complete →
         </button>
       </div>
@@ -704,9 +754,9 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
       </div>
     </section>
 
-    <section id="step-7" data-step="7" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+    <section id="step-8" data-step="8" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
       <div class="flex items-start gap-4 mb-6">
-        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">8</div>
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">9</div>
         <div class="flex-1 min-w-0">
           <h2 class="text-base font-semibold text-slate-100">Configure Nginx & SSL</h2>
           <p class="text-sm text-slate-400 mt-0.5">Set up reverse proxy and optional SSL certificates for production.</p>
@@ -922,7 +972,7 @@ server {
         <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
           ⚠ Having trouble?
         </button>
-        <button onclick="completeStep(7)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+        <button onclick="completeStep(8)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
           Mark Complete →
         </button>
       </div>
@@ -938,9 +988,9 @@ server {
       </div>
     </section>
 
-    <section id="step-8" data-step="8" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+    <section id="step-9" data-step="9" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
       <div class="flex items-start gap-4 mb-6">
-        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">9</div>
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">10</div>
         <div class="flex-1 min-w-0">
           <h2 class="text-base font-semibold text-slate-100">Post-Deployment</h2>
           <p class="text-sm text-slate-400 mt-0.5">Monitoring, maintenance, and next steps.</p>
@@ -1016,7 +1066,7 @@ server {
       </div>
 
       <div class="mt-8 flex items-center justify-end">
-        <button onclick="completeStep(8)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+        <button onclick="completeStep(9)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
           Finish →
         </button>
       </div>
@@ -1025,7 +1075,7 @@ server {
   </main>
 
   <script>
-    const state = { current: 0, completed: new Set(), total: 9 };
+    const state = { current: 0, completed: new Set(), total: 10 };
 
     function completeStep(i) {
       state.completed.add(i);
@@ -1050,16 +1100,32 @@ server {
     function updateProgress() {
       const pct = (state.completed.size / state.total) * 100;
       document.getElementById('prog-fill').style.width = pct + '%';
-      document.getElementById('prog-current').textContent = state.current + 1;
+      document.getElementById('prog-current').textContent = Math.min(state.current + 1, state.total);
       
-      const labels = ['Prerequisites', 'Configure', 'Server Setup', 'Download', 'Transfer', 'Deploy', 'Verify', 'Nginx/SSL', 'Complete'];
+      const labels = ['Prerequisites', 'Configure', 'Server Setup', 'Download', 'Access', 'Transfer', 'Deploy', 'Verify', 'Nginx/SSL', 'Complete'];
       document.getElementById('prog-label').textContent = labels[state.current] || 'Complete';
     }
 
+    function updateServerAccessCommands() {
+      const username = document.getElementById('server-username')?.value.trim() || 'user';
+      const serverIp = document.getElementById('server-ip')?.value.trim() || '<server-ip>';
+      const target = `${username}@${serverIp}`;
+      const scpCommand = document.getElementById('transfer-scp-command');
+      const sshCommand = document.getElementById('transfer-ssh-command');
+
+      if (scpCommand) {
+        scpCommand.textContent = `scp -r EdgeTelemetryDeployment/ ${target}:~/`;
+      }
+
+      if (sshCommand) {
+        sshCommand.textContent = `ssh ${target}`;
+      }
+    }
+
     function updateFullEnvPreview() {
-      const dbUser = document.getElementById('db-user').value || 'postgres';
-      const dbPassword = document.getElementById('db-password').value || 'password';
-      const dbHost = document.getElementById('db-host').value || 'localhost';
+      const dbUser = document.getElementById('db-user').value || 'db-user';
+      const dbPassword = document.getElementById('db-password').value || 'db-password';
+      const dbHost = document.getElementById('db-host').value || '127.0.0.1';
       const dbPort = document.getElementById('db-port').value || '5433';
       const dbName = document.getElementById('db-name').value || 'edge_db';
       const jwtSecret = document.getElementById('jwt-secret').value || 'dev-only-secret-change-in-prod';
@@ -1101,9 +1167,9 @@ EDGE_ALLOW_JWT_FALLBACK=true`;
     }
 
     function copyFullEnvFile() {
-      const dbUser = document.getElementById('db-user').value || 'postgres';
-      const dbPassword = document.getElementById('db-password').value || 'password';
-      const dbHost = document.getElementById('db-host').value || 'localhost';
+      const dbUser = document.getElementById('db-user').value || 'db-user';
+      const dbPassword = document.getElementById('db-password').value || 'db-password';
+      const dbHost = document.getElementById('db-host').value || '127.0.0.1';
       const dbPort = document.getElementById('db-port').value || '5433';
       const dbName = document.getElementById('db-name').value || 'edge_db';
       const jwtSecret = document.getElementById('jwt-secret').value || 'dev-only-secret-change-in-prod';
@@ -1440,6 +1506,8 @@ server {
     document.getElementById('jwt-secret')?.addEventListener('input', updateFullEnvPreview);
     document.getElementById('jwt-issuer')?.addEventListener('input', updateFullEnvPreview);
     document.getElementById('jwt-audience')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('server-username')?.addEventListener('input', updateServerAccessCommands);
+    document.getElementById('server-ip')?.addEventListener('input', updateServerAccessCommands);
     document.getElementById('nginx-domain')?.addEventListener('input', updateNginxConfig);
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1447,6 +1515,7 @@ server {
       initTroubleToggles();
       updateProgress();
       updateFullEnvPreview();
+      updateServerAccessCommands();
     });
   </script>
 </body>
