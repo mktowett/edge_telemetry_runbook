@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EdgeTelemetry Deployment Guide</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: { DEFAULT: '#0f172a', raised: '#1e293b', overlay: '#334155' },
+            brand: { DEFAULT: '#22c55e', light: '#4ade80', muted: '#166534' },
+          },
+          boxShadow: {
+            'glow-green': '0 0 20px -5px rgba(34,197,94,0.3)',
+            'glow-blue': '0 0 20px -5px rgba(59,130,246,0.3)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .step { scroll-margin-top: 100px; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased">
+  
+  <div class="fixed top-0 inset-x-0 z-50 bg-slate-900/90 backdrop-blur-md border-b border-white/5">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
+      <span class="text-xs text-slate-400 whitespace-nowrap font-medium">
+        Step <span id="prog-current">1</span> of <span id="prog-total">9</span>
+      </span>
+      <div class="flex-1 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+        <div id="prog-fill" class="bg-green-500 h-full rounded-full transition-[width] duration-500 ease-in-out" style="width:0%"></div>
+      </div>
+      <span id="prog-label" class="text-xs text-slate-400 truncate max-w-[160px]">Prerequisites</span>
+    </div>
+  </div>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 pt-24 pb-16 space-y-8">
+    
+    <header class="text-center space-y-4 py-8">
+      <h1 class="text-4xl font-bold text-green-500">EdgeTelemetry</h1>
+      <p class="text-xl text-slate-300">Interactive Deployment Guide</p>
+      <p class="text-sm text-slate-400 max-w-2xl mx-auto">
+        Deploy a production-ready telemetry system with Kafka, Redis caching, and web dashboard on Ubuntu 24.04 LTS.
+      </p>
+    </header>
+
+    <section class="rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8">
+      <h2 class="text-lg font-semibold text-slate-100 mb-4">What You'll Build</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div class="flex items-start gap-3">
+          <span class="text-green-500 shrink-0">✓</span>
+          <div>
+            <div class="font-semibold text-slate-200">Telemetry Collector</div>
+            <div class="text-slate-400">Port 8001 - Data ingestion API</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-green-500 shrink-0">✓</span>
+          <div>
+            <div class="font-semibold text-slate-200">Telemetry Processor</div>
+            <div class="text-slate-400">Port 8002 - Data processing</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-green-500 shrink-0">✓</span>
+          <div>
+            <div class="font-semibold text-slate-200">Dashboard API</div>
+            <div class="text-slate-400">Port 8003 - Query API with Redis</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-green-500 shrink-0">✓</span>
+          <div>
+            <div class="font-semibold text-slate-200">Kafka + Zookeeper</div>
+            <div class="text-slate-400">Message broker infrastructure</div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="text-green-500 shrink-0">✓</span>
+          <div>
+            <div class="font-semibold text-slate-200">Redis + Kafka UI</div>
+            <div class="text-slate-400">Caching and monitoring</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="step-0" data-step="0" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 ring-green-500/30 border-l-4 border-green-500 transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">1</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Prerequisites Check</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Verify your system meets the requirements.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>This guide assumes you have a fresh Ubuntu 24.04 LTS server with sudo access.</p>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-sm font-semibold text-slate-300">Required:</h3>
+          <ul class="space-y-2 text-sm text-slate-400">
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Ubuntu 24.04 LTS server</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Minimum 4GB RAM, 2 CPU cores</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>20GB free disk space</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Sudo/root access</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Ports 8001-8003, 8080, 6379 available</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(0)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Check Ubuntu version: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">lsb_release -a</code></li>
+          <li>Verify ports: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">sudo netstat -tulpn | grep -E '(8001|8002|8003|8080|6379)'</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-1" data-step="1" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">2</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Configure Environment</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Set up database credentials and application settings before running setup script.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>Configure your database connection and JWT settings. You'll use these values when the setup script prompts you in Step 3.</p>
+        </div>
+
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Database Configuration</h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Username</label>
+              <input type="text" id="db-user" placeholder="postgres" value="postgres"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+            
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Password</label>
+              <input type="password" id="db-password" placeholder="Edge123"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+            
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Server IP</label>
+              <input type="text" id="db-host" placeholder="102.164.37.218"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+            
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Port</label>
+              <input type="text" id="db-port" placeholder="5433" value="5433"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+            
+            <div class="space-y-1.5 sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">Database Name</label>
+              <input type="text" id="db-name" placeholder="edge_db" value="edge_db"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">JWT Authentication Settings</h3>
+          
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">JWT Secret</label>
+            <input type="password" id="jwt-secret" placeholder="dev-only-secret-change-in-prod"
+              class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            <p class="text-xs text-slate-500">Use a strong, random secret for production deployments.</p>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">JWT Issuer</label>
+              <input type="text" id="jwt-issuer" placeholder="edge-control-plane" value="edge-control-plane"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+            
+            <div class="space-y-1.5">
+              <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">JWT Audience</label>
+              <input type="text" id="jwt-audience" placeholder="edge-dashboard" value="edge-dashboard"
+                class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
+          <span class="shrink-0">⚠</span>
+          <div>
+            <p class="font-semibold mb-1">Database Connection String</p>
+            <p class="text-amber-300/80">When running getstarted.sh in Step 3, copy the host and port values below when prompted.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Generated .env Configuration</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">.env</span>
+              <button onclick="copyFullEnvFile()" class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre id="full-env-preview" class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code># ===== Shared App Settings (Processor + RUM Analytics) =====
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+CACHE_EXPIRE_SECONDS=300
+
+# ===== Database (shared) =====
+DATABASE_URL=<span class="text-amber-400">postgresql+asyncpg://[user]:[password]@[host]:[port]/[database]</span>
+
+# ===== Kafka (shared) =====
+KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+KAFKA_TOPIC=telemetry-upsert
+
+# ===== Redis (shared) =====
+REDIS_HOST=telemetry-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ===== API defaults (can be overridden per service) =====
+API_HOST=0.0.0.0
+
+# ===== AUTH =====
+EDGE_JWT_ALG=HS256
+EDGE_JWT_SECRET=<span class="text-amber-400">dev-only-secret-change-in-prod</span>
+EDGE_JWT_ISSUER=<span class="text-amber-400">edge-control-plane</span>
+EDGE_JWT_AUDIENCE=<span class="text-amber-400">edge-dashboard</span>
+EDGE_JWT_ACCESS_MINUTES=120
+EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">This configuration will be saved to your deployment package in Step 5.</p>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(1)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Tips:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Get database credentials from your infrastructure team before proceeding</li>
+          <li>Use a strong, random JWT secret for production (not the default)</li>
+          <li>Save the generated .env content - you'll need it in Step 5</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-2" data-step="2" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">3</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Server Preparation</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Run the automated setup script to install dependencies and validate the server.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>The <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">getstarted.sh</code> script will install Docker, Nginx, validate mount points, check ports, and create required directories.</p>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 1: Download the setup script</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">bash</span>
+              <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>wget https://raw.githubusercontent.com/NCG-Africa/EdgeTelemetryDeployment/master/getstarted.sh</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 2: Make it executable</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">bash</span>
+              <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>chmod +x getstarted.sh</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 3: Run the script with sudo</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">bash</span>
+              <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo bash getstarted.sh</code></pre>
+          </div>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
+          <span class="shrink-0">⚠</span>
+          <div>
+            <p class="font-semibold mb-1">Interactive Prompts</p>
+            <p class="text-amber-300/80">The script will ask for PostgreSQL host and port. Use the values you configured in Step 2.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">What the script does:</h3>
+          <ul class="space-y-2 text-sm text-slate-400">
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Validates OS (Ubuntu 24.04 LTS), RAM (4GB+), and swap (16GB recommended)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Checks mount points: /, /var (100GB), /opt (80GB), /data (200GB)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Installs Docker Engine, Docker Compose, Nginx, make, unzip, curl</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Validates port availability (80, 443, 8001-8003, 8080, 6379)</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Tests PostgreSQL connectivity</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Creates directories: /opt/edgetelemetry, /opt/edge-telemetry, /data/edgetelemetry</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300">
+          <span class="shrink-0">✓</span>
+          <div>
+            <p class="font-semibold mb-1">Expected Completion Time</p>
+            <p class="text-green-300/80">5-10 minutes depending on internet speed and system updates.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(2)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Permission denied: Ensure you're running with <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">sudo</code></li>
+          <li>Mount warnings: Review output and provision dedicated volumes for production</li>
+          <li>Port conflicts: Stop conflicting services or adjust port mappings</li>
+          <li>PostgreSQL unreachable: Verify DB host/port and firewall whitelist</li>
+          <li>Docker group: Run <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">newgrp docker</code> after script completes</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-3" data-step="3" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">4</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Download Deployment Package</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Get the latest code from GitHub.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <div>
+            <p class="font-semibold mb-1">Download Deployment Package</p>
+            <p class="text-blue-300/80">Download the latest EdgeTelemetry deployment package to your local machine.</p>
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-slate-700/50 border border-white/5 p-4">
+          <div class="flex items-start justify-between gap-4 mb-3">
+            <div class="flex-1 min-w-0">
+              <h4 class="text-sm font-semibold text-slate-100">EdgeTelemetry Deployment Package</h4>
+              <p class="text-xs text-slate-400 mt-1">Complete deployment files including Docker Compose, scripts, and configurations</p>
+            </div>
+          </div>
+          
+          <a href="downloads/EdgeTelemetryDeployment.zip" download="EdgeTelemetryDeployment.zip" class="inline-flex items-center gap-2.5 bg-green-500 hover:bg-green-400 text-white font-semibold text-sm px-6 py-3 rounded-lg shadow-lg shadow-green-500/25 hover:shadow-green-500/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 no-underline">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Download Deployment Package
+          </a>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300">
+          <span class="shrink-0">✓</span>
+          <div>
+            <p class="font-semibold mb-1">What's Included</p>
+            <ul class="text-green-300/80 space-y-1 text-xs list-disc list-inside">
+              <li>Docker Compose configuration files</li>
+              <li>Environment setup scripts</li>
+              <li>Nginx reverse proxy templates</li>
+              <li>Service deployment manifests</li>
+              <li>Database migration scripts</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(3)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>401 Error: Check your PAT has <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">repo</code> scope</li>
+          <li>404 Error: Verify you have access to NCG-Africa/EdgeTelemetryDeployment</li>
+          <li>Network Error: Check your internet connection</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-4" data-step="4" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">5</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Transfer Files to Server</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Upload the deployment package to your Ubuntu server.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>Extract the ZIP file locally, then use SCP to transfer files to your server.</p>
+        </div>
+
+        <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+          <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+            <span class="text-xs text-slate-500 font-mono">bash</span>
+            <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>scp -r EdgeTelemetryDeployment/ user@&lt;server-ip&gt;:~/</code></pre>
+        </div>
+
+        <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+          <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+            <span class="text-xs text-slate-500 font-mono">bash</span>
+            <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>ssh user@&lt;server-ip&gt;</code></pre>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(4)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Permission denied: Check SSH key setup or use password authentication</li>
+          <li>Connection refused: Verify server IP and SSH port (default 22)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-5" data-step="5" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">6</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Deploy Services</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Start all EdgeTelemetry services using Docker Compose.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
+          <span class="shrink-0">⚠</span>
+          <p>Make sure your <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">.env</code> file is in the project root before deploying.</p>
+        </div>
+
+        <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+          <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+            <span class="text-xs text-slate-500 font-mono">bash</span>
+            <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>cd ~/EdgeTelemetryDeployment</code></pre>
+        </div>
+
+        <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+          <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+            <span class="text-xs text-slate-500 font-mono">bash</span>
+            <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>make prod-up</code></pre>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>This will start all services in detached mode. Initial startup takes 2-3 minutes.</p>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(5)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Docker not installed: Run <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">sudo apt install docker.io docker-compose -y</code></li>
+          <li>Permission denied: Add user to docker group <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">sudo usermod -aG docker $USER</code></li>
+          <li>Port conflicts: Check if ports are already in use</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-6" data-step="6" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">7</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Verify Deployment</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Check that all services are running correctly.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+          <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+            <span class="text-xs text-slate-500 font-mono">bash</span>
+            <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>make health</code></pre>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300">
+          <span class="shrink-0">✓</span>
+          <div>
+            <p class="font-semibold mb-1">Expected Output:</p>
+            <p class="text-green-300/80">All services should return HTTP 200 or show "healthy" status.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Service Endpoints:</h3>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
+              <span class="text-slate-400">Telemetry Collector</span>
+              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8001</code>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
+              <span class="text-slate-400">Telemetry Processor</span>
+              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8002</code>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
+              <span class="text-slate-400">Dashboard API</span>
+              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8003</code>
+            </div>
+            <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
+              <span class="text-slate-400">Kafka UI</span>
+              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(6)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Troubleshooting:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Check logs: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">make prod-logs</code></li>
+          <li>Restart services: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">make prod-restart</code></li>
+          <li>Check container status: <code class="bg-slate-900/50 px-1.5 py-0.5 rounded text-xs">docker ps</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-7" data-step="7" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">8</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Configure Nginx & SSL</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Set up reverse proxy and optional SSL certificates for production.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
+          <span class="shrink-0">ℹ</span>
+          <p>SSL is optional for POC but <strong>required for production</strong> deployments. Configure your domain name and SSL certificates here.</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-slate-400 uppercase tracking-widest">
+            Domain Name (Optional)
+          </label>
+          <input type="text" id="nginx-domain" placeholder="telemetry.yourdomain.com"
+            class="w-full bg-slate-700 border border-white/10 rounded-lg px-4 py-3 text-sm text-slate-100 font-mono placeholder-slate-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/40 transition-all duration-200">
+          <p class="text-xs text-slate-500">Leave empty to use IP address only (POC mode).</p>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 1: Create Nginx configuration</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">nginx.conf</span>
+              <button onclick="copyNginxConfig()" class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre id="nginx-config" class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>upstream telemetry_collector {
+    server localhost:8001;
+}
+
+upstream telemetry_processor {
+    server localhost:8002;
+}
+
+upstream dashboard_api {
+    server localhost:8003;
+}
+
+upstream kafka_ui {
+    server localhost:8080;
+}
+
+server {
+    listen 80;
+    server_name <span class="text-amber-400">your-domain.com</span>;
+
+    location /collector/ {
+        proxy_pass http://telemetry_collector/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /processor/ {
+        proxy_pass http://telemetry_processor/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://dashboard_api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /kafka-ui/ {
+        proxy_pass http://kafka_ui/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 2: Deploy Nginx configuration</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">bash</span>
+              <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo nano /etc/nginx/sites-available/edgetelemetry</code></pre>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Paste the configuration above, save (Ctrl+O), and exit (Ctrl+X).</p>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 3: Enable the site</h3>
+          <div class="space-y-2">
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">bash</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo ln -s /etc/nginx/sites-available/edgetelemetry /etc/nginx/sites-enabled/</code></pre>
+            </div>
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">bash</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo nginx -t</code></pre>
+            </div>
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">bash</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo systemctl reload nginx</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300">
+          <span class="shrink-0">⚠</span>
+          <div>
+            <p class="font-semibold mb-1">SSL Configuration (Production Only)</p>
+            <p class="text-amber-300/80">For production deployments, SSL is mandatory. Follow the steps below to configure Let's Encrypt SSL.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 4: Install Certbot (SSL - Production Only)</h3>
+          <div class="space-y-2">
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">bash</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo apt install certbot python3-certbot-nginx -y</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Step 5: Obtain SSL certificate (Production Only)</h3>
+          <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+              <span class="text-xs text-slate-500 font-mono">bash</span>
+              <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+            </div>
+            <pre id="certbot-command" class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>sudo certbot --nginx -d <span class="text-amber-400">your-domain.com</span></code></pre>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Certbot will automatically configure SSL and set up auto-renewal.</p>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+          <span class="shrink-0">🔒</span>
+          <div>
+            <p class="font-semibold mb-1">Prerequisites for SSL</p>
+            <ul class="list-disc list-inside space-y-1 text-red-300/80 mt-2">
+              <li>Domain name must point to your server's IP address (A record)</li>
+              <li>Port 80 and 443 must be open in your firewall</li>
+              <li>Valid email address for Let's Encrypt notifications</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300">
+          <span class="shrink-0">✓</span>
+          <div>
+            <p class="font-semibold mb-1">After SSL Configuration</p>
+            <p class="text-green-300/80">Your services will be accessible via HTTPS at your domain name. Certbot will auto-renew certificates before expiry.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-between flex-wrap gap-4">
+        <button class="trouble-toggle text-xs text-slate-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+          ⚠ Having trouble?
+        </button>
+        <button onclick="completeStep(7)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Mark Complete →
+        </button>
+      </div>
+
+      <div class="trouble-panel hidden mt-6 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200 space-y-2">
+        <p class="font-semibold">Common Issues:</p>
+        <ul class="list-disc list-inside space-y-1 text-amber-300/80">
+          <li>Nginx test fails: Check syntax errors in configuration file</li>
+          <li>Port 80/443 conflicts: Stop other web servers using these ports</li>
+          <li>Certbot fails: Verify DNS A record points to server IP</li>
+          <li>Domain not resolving: Wait for DNS propagation (up to 48 hours)</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="step-8" data-step="8" class="step rounded-2xl bg-slate-800 ring-1 ring-white/5 shadow-lg p-8 opacity-40 pointer-events-none transition-all duration-300">
+      <div class="flex items-start gap-4 mb-6">
+        <div class="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-sm font-bold text-white shrink-0">9</div>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-semibold text-slate-100">Post-Deployment</h2>
+          <p class="text-sm text-slate-400 mt-0.5">Monitoring, maintenance, and next steps.</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300">
+          <span class="shrink-0">✓</span>
+          <div>
+            <p class="font-semibold mb-1">Deployment Complete!</p>
+            <p class="text-green-300/80">Your EdgeTelemetry system is now running.</p>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Useful Commands:</h3>
+          <div class="space-y-2">
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">View all logs</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>make prod-logs</code></pre>
+            </div>
+
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">Stop all services</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>make prod-down</code></pre>
+            </div>
+
+            <div class="cmd-block rounded-xl overflow-hidden border border-white/5">
+              <div class="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-white/5">
+                <span class="text-xs text-slate-500 font-mono">Restart services</span>
+                <button class="copy-btn text-xs text-slate-400 hover:text-green-400 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                  </svg>
+                  Copy
+                </button>
+              </div>
+              <pre class="bg-slate-950 px-5 py-4 text-sm text-cyan-200 font-mono overflow-x-auto leading-relaxed"><code>make prod-restart</code></pre>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-sm font-semibold text-slate-300 mb-3">Resources:</h3>
+          <ul class="space-y-2 text-sm text-slate-400">
+            <li class="flex items-start gap-2">
+              <span class="text-blue-500 shrink-0">→</span>
+              <a href="https://github.com/NCG-Africa/EdgeTelemetryDeployment" target="_blank" class="text-blue-400 hover:text-blue-300 transition-colors">GitHub Repository</a>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-blue-500 shrink-0">→</span>
+              <span>Kafka UI: <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-8 flex items-center justify-end">
+        <button onclick="completeStep(8)" class="bg-green-500 hover:bg-green-400 text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-lg shadow-green-500/20 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0">
+          Finish →
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const state = { current: 0, completed: new Set(), total: 9 };
+
+    function completeStep(i) {
+      state.completed.add(i);
+      state.current = i + 1;
+      updateProgress();
+      
+      const currentStep = document.querySelector(`[data-step="${i}"]`);
+      if (currentStep) {
+        currentStep.classList.remove('ring-green-500/30', 'border-l-4', 'border-green-500');
+      }
+      
+      const next = document.querySelector(`[data-step="${i + 1}"]`);
+      if (next) {
+        next.classList.remove('opacity-40', 'pointer-events-none');
+        next.classList.add('ring-green-500/30', 'border-l-4', 'border-green-500');
+        setTimeout(() => {
+          next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+
+    function updateProgress() {
+      const pct = (state.completed.size / state.total) * 100;
+      document.getElementById('prog-fill').style.width = pct + '%';
+      document.getElementById('prog-current').textContent = state.current + 1;
+      
+      const labels = ['Prerequisites', 'Configure', 'Server Setup', 'Download', 'Transfer', 'Deploy', 'Verify', 'Nginx/SSL', 'Complete'];
+      document.getElementById('prog-label').textContent = labels[state.current] || 'Complete';
+    }
+
+    function updateFullEnvPreview() {
+      const dbUser = document.getElementById('db-user').value || 'postgres';
+      const dbPassword = document.getElementById('db-password').value || 'password';
+      const dbHost = document.getElementById('db-host').value || 'localhost';
+      const dbPort = document.getElementById('db-port').value || '5433';
+      const dbName = document.getElementById('db-name').value || 'edge_db';
+      const jwtSecret = document.getElementById('jwt-secret').value || 'dev-only-secret-change-in-prod';
+      const jwtIssuer = document.getElementById('jwt-issuer').value || 'edge-control-plane';
+      const jwtAudience = document.getElementById('jwt-audience').value || 'edge-dashboard';
+      
+      const databaseUrl = `postgresql+asyncpg://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
+      
+      const envPreview = `# ===== Shared App Settings (Processor + RUM Analytics) =====
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+CACHE_EXPIRE_SECONDS=300
+
+# ===== Database (shared) =====
+DATABASE_URL=${databaseUrl}
+
+# ===== Kafka (shared) =====
+KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+KAFKA_TOPIC=telemetry-upsert
+
+# ===== Redis (shared) =====
+REDIS_HOST=telemetry-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ===== API defaults (can be overridden per service) =====
+API_HOST=0.0.0.0
+
+# ===== AUTH =====
+EDGE_JWT_ALG=HS256
+EDGE_JWT_SECRET=${jwtSecret}
+EDGE_JWT_ISSUER=${jwtIssuer}
+EDGE_JWT_AUDIENCE=${jwtAudience}
+EDGE_JWT_ACCESS_MINUTES=120
+EDGE_ALLOW_JWT_FALLBACK=true`;
+      
+      document.getElementById('full-env-preview').innerHTML = `<code>${envPreview}</code>`;
+    }
+
+    function copyFullEnvFile() {
+      const dbUser = document.getElementById('db-user').value || 'postgres';
+      const dbPassword = document.getElementById('db-password').value || 'password';
+      const dbHost = document.getElementById('db-host').value || 'localhost';
+      const dbPort = document.getElementById('db-port').value || '5433';
+      const dbName = document.getElementById('db-name').value || 'edge_db';
+      const jwtSecret = document.getElementById('jwt-secret').value || 'dev-only-secret-change-in-prod';
+      const jwtIssuer = document.getElementById('jwt-issuer').value || 'edge-control-plane';
+      const jwtAudience = document.getElementById('jwt-audience').value || 'edge-dashboard';
+      
+      const databaseUrl = `postgresql+asyncpg://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
+      
+      const envContent = `# ===== Shared App Settings (Processor + RUM Analytics) =====
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+CACHE_EXPIRE_SECONDS=300
+
+# ===== Database (shared) =====
+DATABASE_URL=${databaseUrl}
+
+# ===== Kafka (shared) =====
+KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+KAFKA_TOPIC=telemetry-upsert
+
+# ===== Redis (shared) =====
+REDIS_HOST=telemetry-redis
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ===== API defaults (can be overridden per service) =====
+API_HOST=0.0.0.0
+
+# ===== AUTH =====
+EDGE_JWT_ALG=HS256
+EDGE_JWT_SECRET=${jwtSecret}
+EDGE_JWT_ISSUER=${jwtIssuer}
+EDGE_JWT_AUDIENCE=${jwtAudience}
+EDGE_JWT_ACCESS_MINUTES=120
+EDGE_ALLOW_JWT_FALLBACK=true`;
+      
+      navigator.clipboard.writeText(envContent);
+    }
+
+    function initCopyButtons() {
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const code = btn.closest('.cmd-block').querySelector('code').innerText;
+          await navigator.clipboard.writeText(code);
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '✓ Copied!';
+          btn.classList.add('text-green-400');
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('text-green-400');
+          }, 2000);
+        });
+      });
+    }
+
+    function initTroubleToggles() {
+      document.querySelectorAll('.trouble-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const panel = btn.closest('section').querySelector('.trouble-panel');
+          panel.classList.toggle('hidden');
+        });
+      });
+    }
+
+    async function fetchReleases() {
+      const pat = document.getElementById('github-pat').value.trim();
+      const btn = document.getElementById('fetch-releases-btn');
+      const releasesList = document.getElementById('releases-list');
+      const status = document.getElementById('download-status');
+      
+      if (!pat) {
+        status.className = 'flex gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 mt-4';
+        status.innerHTML = '<span class="shrink-0">✗</span><p>Please enter your GitHub Personal Access Token.</p>';
+        status.classList.remove('hidden');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Fetching...';
+
+      try {
+        const response = await fetch('https://api.github.com/repos/NCG-Africa/EdgeTelemetryDeployment/releases', {
+          headers: {
+            'Authorization': `token ${pat}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(response.status === 401 ? 'Invalid token or insufficient permissions' : 
+                         response.status === 404 ? 'Repository not found or no access' :
+                         `HTTP ${response.status}`);
+        }
+
+        const releases = await response.json();
+        
+        if (releases.length === 0) {
+          status.className = 'flex gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-sm text-amber-300 mt-4';
+          status.innerHTML = '<span class="shrink-0">⚠</span><p>No releases found. Please contact your administrator to create a release in the repository.</p>';
+          status.classList.remove('hidden');
+          releasesList.classList.add('hidden');
+        } else {
+          releasesList.innerHTML = releases.slice(0, 5).map(release => {
+            const asset = release.assets.find(a => a.name.endsWith('.zip')) || release.assets[0];
+            return `
+              <div class="rounded-xl bg-slate-700/50 border border-white/5 p-4">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <h4 class="text-sm font-semibold text-slate-100">${release.name || release.tag_name}</h4>
+                    <p class="text-xs text-slate-400 mt-1">${new Date(release.published_at).toLocaleDateString()}</p>
+                    ${asset ? `<p class="text-xs text-slate-500 mt-1">${asset.name} (${(asset.size / 1024 / 1024).toFixed(2)} MB)</p>` : ''}
+                  </div>
+                  ${asset ? `
+                    <button onclick="downloadReleaseAsset('${asset.url}', '${asset.name}')" class="shrink-0 inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-all duration-200 hover:-translate-y-0.5">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                      </svg>
+                      Download
+                    </button>
+                  ` : '<span class="text-xs text-slate-500">No assets</span>'}
+                </div>
+              </div>
+            `;
+          }).join('');
+          releasesList.classList.remove('hidden');
+          status.classList.add('hidden');
+        }
+      } catch (error) {
+        status.className = 'flex gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 mt-4';
+        status.innerHTML = `<span class="shrink-0">✗</span><p>Error: ${error.message}</p>`;
+        status.classList.remove('hidden');
+        releasesList.classList.add('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Fetch Available Releases';
+      }
+    }
+
+    function downloadReleaseAsset(assetUrl, assetName) {
+      const pat = document.getElementById('github-pat').value.trim();
+      const status = document.getElementById('download-status');
+      
+      status.className = 'flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300 mt-4';
+      status.innerHTML = '<span class="shrink-0">⏳</span><p>Downloading... This may take a moment.</p>';
+      status.classList.remove('hidden');
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', assetUrl, true);
+      xhr.setRequestHeader('Authorization', `token ${pat}`);
+      xhr.setRequestHeader('Accept', 'application/octet-stream');
+      xhr.responseType = 'blob';
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const blob = xhr.response;
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = assetName;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+
+          status.className = 'flex gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-sm text-green-300 mt-4';
+          status.innerHTML = '<span class="shrink-0">✓</span><p>Download complete! Check your downloads folder.</p>';
+          status.classList.remove('hidden');
+        } else {
+          status.className = 'flex gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 mt-4';
+          status.innerHTML = `<span class="shrink-0">✗</span><p>Download failed: HTTP ${xhr.status}. Check your token permissions.</p>`;
+          status.classList.remove('hidden');
+        }
+      };
+
+      xhr.onerror = function() {
+        status.className = 'flex gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-300 mt-4';
+        status.innerHTML = '<span class="shrink-0">✗</span><p>Network error. Unable to download the file.</p>';
+        status.classList.remove('hidden');
+      };
+
+      xhr.send();
+    }
+
+    function updateEnvPreview() {
+      const serverIp = document.getElementById('env-server-ip').value || '<your-server-ip>';
+      const kafka = document.getElementById('env-kafka').value || 'localhost:9092';
+      const redis = document.getElementById('env-redis').value || 'localhost';
+      
+      document.getElementById('env-preview').innerHTML = `<code>SERVER_IP=${serverIp}
+KAFKA_BROKER=${kafka}
+REDIS_HOST=${redis}
+REDIS_PORT=6379</code>`;
+    }
+
+    function copyEnvFile() {
+      const serverIp = document.getElementById('env-server-ip').value || '<your-server-ip>';
+      const kafka = document.getElementById('env-kafka').value || 'localhost:9092';
+      const redis = document.getElementById('env-redis').value || 'localhost';
+      
+      const envContent = `SERVER_IP=${serverIp}
+KAFKA_BROKER=${kafka}
+REDIS_HOST=${redis}
+REDIS_PORT=6379`;
+      
+      navigator.clipboard.writeText(envContent);
+    }
+
+    function updateNginxConfig() {
+      const domain = document.getElementById('nginx-domain').value || 'your-domain.com';
+      const configElement = document.getElementById('nginx-config');
+      const certbotElement = document.getElementById('certbot-command');
+      
+      const config = `upstream telemetry_collector {
+    server localhost:8001;
+}
+
+upstream telemetry_processor {
+    server localhost:8002;
+}
+
+upstream dashboard_api {
+    server localhost:8003;
+}
+
+upstream kafka_ui {
+    server localhost:8080;
+}
+
+server {
+    listen 80;
+    server_name ${domain};
+
+    location /collector/ {
+        proxy_pass http://telemetry_collector/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /processor/ {
+        proxy_pass http://telemetry_processor/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://dashboard_api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /kafka-ui/ {
+        proxy_pass http://kafka_ui/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}`;
+      
+      configElement.innerHTML = `<code>${config}</code>`;
+      certbotElement.innerHTML = `<code>sudo certbot --nginx -d ${domain}</code>`;
+    }
+
+    function copyNginxConfig() {
+      const domain = document.getElementById('nginx-domain').value || 'your-domain.com';
+      const config = `upstream telemetry_collector {
+    server localhost:8001;
+}
+
+upstream telemetry_processor {
+    server localhost:8002;
+}
+
+upstream dashboard_api {
+    server localhost:8003;
+}
+
+upstream kafka_ui {
+    server localhost:8080;
+}
+
+server {
+    listen 80;
+    server_name ${domain};
+
+    location /collector/ {
+        proxy_pass http://telemetry_collector/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /processor/ {
+        proxy_pass http://telemetry_processor/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://dashboard_api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /kafka-ui/ {
+        proxy_pass http://kafka_ui/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}`;
+      
+      navigator.clipboard.writeText(config);
+    }
+
+    document.getElementById('db-user')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('db-password')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('db-host')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('db-port')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('db-name')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('jwt-secret')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('jwt-issuer')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('jwt-audience')?.addEventListener('input', updateFullEnvPreview);
+    document.getElementById('nginx-domain')?.addEventListener('input', updateNginxConfig);
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initCopyButtons();
+      initTroubleToggles();
+      updateProgress();
+      updateFullEnvPreview();
+    });
+  </script>
+</body>
+</html>
