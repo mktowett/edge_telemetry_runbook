@@ -110,7 +110,7 @@
       <div class="space-y-4">
         <div class="flex gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm text-blue-300">
           <span class="shrink-0">ℹ</span>
-          <p>This guide assumes you have a fresh Ubuntu 24.04 LTS server with sudo access.</p>
+          <p>This guide assumes you have a fresh Ubuntu 24.04 LTS server with sudo access and internet connectivity.</p>
         </div>
 
         <div class="space-y-3">
@@ -131,6 +131,10 @@
             <li class="flex items-start gap-2">
               <span class="text-green-500 shrink-0">✓</span>
               <span>Sudo/root access</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <span class="text-green-500 shrink-0">✓</span>
+              <span>Internet access available on the server</span>
             </li>
             <li class="flex items-start gap-2">
               <span class="text-green-500 shrink-0">✓</span>
@@ -717,19 +721,19 @@ EDGE_ALLOW_JWT_FALLBACK=true</code></pre>
           <div class="space-y-2 text-sm">
             <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
               <span class="text-slate-400">Telemetry Collector</span>
-              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8001</code>
+              <code id="endpoint-collector" class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8001</code>
             </div>
             <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
               <span class="text-slate-400">Telemetry Processor</span>
-              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8002</code>
+              <code id="endpoint-processor" class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8002</code>
             </div>
             <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
               <span class="text-slate-400">Dashboard API</span>
-              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8003</code>
+              <code id="endpoint-dashboard" class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8003</code>
             </div>
             <div class="flex items-center justify-between p-3 rounded-lg bg-slate-900/50">
               <span class="text-slate-400">Kafka UI</span>
-              <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code>
+              <code id="endpoint-kafka-ui" class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code>
             </div>
           </div>
         </div>
@@ -1059,7 +1063,7 @@ server {
             </li>
             <li class="flex items-start gap-2">
               <span class="text-blue-500 shrink-0">→</span>
-              <span>Kafka UI: <code class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code></span>
+              <span>Kafka UI: <code id="resource-kafka-ui-endpoint" class="text-cyan-300 font-mono text-xs">http://&lt;server-ip&gt;:8080</code></span>
             </li>
           </ul>
         </div>
@@ -1112,6 +1116,11 @@ server {
       const target = `${username}@${serverIp}`;
       const scpCommand = document.getElementById('transfer-scp-command');
       const sshCommand = document.getElementById('transfer-ssh-command');
+      const collectorEndpoint = document.getElementById('endpoint-collector');
+      const processorEndpoint = document.getElementById('endpoint-processor');
+      const dashboardEndpoint = document.getElementById('endpoint-dashboard');
+      const kafkaUiEndpoint = document.getElementById('endpoint-kafka-ui');
+      const resourceKafkaUiEndpoint = document.getElementById('resource-kafka-ui-endpoint');
 
       if (scpCommand) {
         scpCommand.textContent = `scp -r EdgeTelemetryDeployment/ ${target}:~/`;
@@ -1119,6 +1128,26 @@ server {
 
       if (sshCommand) {
         sshCommand.textContent = `ssh ${target}`;
+      }
+
+      if (collectorEndpoint) {
+        collectorEndpoint.textContent = `http://${serverIp}:8001`;
+      }
+
+      if (processorEndpoint) {
+        processorEndpoint.textContent = `http://${serverIp}:8002`;
+      }
+
+      if (dashboardEndpoint) {
+        dashboardEndpoint.textContent = `http://${serverIp}:8003`;
+      }
+
+      if (kafkaUiEndpoint) {
+        kafkaUiEndpoint.textContent = `http://${serverIp}:8080`;
+      }
+
+      if (resourceKafkaUiEndpoint) {
+        resourceKafkaUiEndpoint.textContent = `http://${serverIp}:8080`;
       }
     }
 
