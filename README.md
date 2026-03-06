@@ -63,4 +63,4 @@ For issues with the deployment itself, refer to:
 
 ## License
 
-Internal use only - NCG Africa
+Internal use only - NCG Africa 
